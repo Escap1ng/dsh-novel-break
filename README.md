@@ -16,14 +16,41 @@
 4. **进度记忆**：按书持久化阅读位置，重启 DSH、切换会话都能接着读。
 5. **配置项**：书名、txt 路径、每块字数、插入间隔、总开关（Schemastery schema，cordis.yml 热更新）。
 
-## 实施步骤
+## 项目结构
 
-1. 调研 dsh-think-translate 源码，确认思维链流式渲染的拦截点与 UI 扩展 API（全项目唯一技术不确定点，先验证再动手）。
-2. 搭 Cordis 插件骨架（TypeScript），用 `--patch` 本地加载跑通。
-3. 写 txt 解析器：编码探测 + 切章 + 分块，配单元测试。
-4. 接思维链流事件，实现块边界缓冲与插入逻辑。
-5. 做卡片 UI + 进度存储 + 配置 schema。
-6. 打包 bundle，`dsh plugin add` 安装实测，完善文档。
+```
+src/
+  index.ts          宿主端入口：加载小说，注册 /_novel/state 与 /_novel/next 同源路由
+  config.ts         Schemastery 配置 schema（enabled / novelPath / chunkSize / insertEvery / minReasoningChars）
+  novel/
+    parser.ts       编码探测（UTF-8/GBK/BOM）+ 切章 + 按字数分块
+    library.ts      书库：顺序出块、游标推进
+    progress.ts     阅读进度持久化（文件名+大小指纹，临时文件原子写入）
+  client/
+    index.ts        浏览器端入口：以 priority 50 接管 conversation.chat.reasoning.body 槽位
+    NovelCard.tsx   可折叠小说卡片（换一段）
+    types.ts        最小槽位契约类型（联调时替换为官方类型）
+test/               node:test 单元测试（12 个用例）
+cordis.patch.yml    --patch 本地加载配置
+```
+
+## 当前进度
+
+- [x] 钩子调研：确认官方 `conversation.chat.reasoning.body` single 槽（默认实现 priority 100），低值接管即可只处理思维块正文、原文经官方工厂槽照常渲染；宿主路由采用 `webServer.register` + `ctx.effect` 工厂模式（参考 dsh-think-translate 的实测教训：effect 必须传返回 disposer 的工厂，否则路由注册即被注销）
+- [x] 框架代码完成，12 个单元测试全部通过（解析器 / 进度存储 / 书库）
+- [ ] 真实 DSH 环境联调：客户端类型目前为最小声明，需对齐官方 `@deepseek-ai/dsh-client-ui-primitives`
+- [ ] 卡片交互补全：暂停插入、下一章跳转；设置页 section
+- [ ] 打包 bundle 并 `dsh plugin add` 安装实测
+
+## 本地开发
+
+```sh
+npm install
+npm test    # 编译 + 单元测试
+npx @deepseek-ai/dsh web --patch ./cordis.patch.yml
+```
+
+本地调试时把 `cordis.patch.yml` 中的 `name` 改为编译产物的 `file://` 绝对路径，并在 `config.novelPath` 填入小说 txt 的绝对路径。
 
 ## 风险与对策
 
