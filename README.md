@@ -59,3 +59,9 @@ npx @deepseek-ai/dsh web --patch ./cordis.patch.yml
 - DSH 处于开发者预览期，官方明示会有破坏性更新：锁定适配版本；UI 钩子失效时静默降级（不插小说，但绝不影响主界面）。
 - 流式输出的块边界不一定对齐语义段落，需要缓冲策略，这是阅读体验的关键。
 - epub 解析为面向阅读场景的轻量实现：不支持 DRM 保护的文件；NCX 嵌套目录只取每层首个章节名（小说目录通常平铺，影响有限）。
+
+## 许可证
+
+Apache License 2.0，见 [LICENSE](./LICENSE)。
+
+Copyright 2026 Escap1ng
