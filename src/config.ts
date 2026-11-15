@@ -7,7 +7,7 @@ import Schema from '@deepseek-ai/schemastery'
 export interface Config {
   /** 总开关：关闭后思维链原样渲染 */
   enabled: boolean
-  /** 小说 txt 文件的绝对路径；留空则不插入 */
+  /** 小说文件（txt / epub）的绝对路径；留空则不插入 */
   novelPath: string
   /** 每个阅读块的字数上限 */
   chunkSize: number

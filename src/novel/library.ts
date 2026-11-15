@@ -1,9 +1,10 @@
 /**
- * 书库：加载 txt、维护阅读游标，向浏览器端提供状态与下一个阅读块。
+ * 书库：加载 txt / epub、维护阅读游标，向浏览器端提供状态与下一个阅读块。
  * 小说内容只经 HTTP 发给浏览器渲染，绝不进入模型上下文。
  */
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import { parseEpub } from './epub.js'
 import { parseNovel, type NovelBook } from './parser.js'
 import { ProgressStore, bookIdOf } from './progress.js'
 
@@ -36,9 +37,16 @@ export class NovelLibrary {
     this.cursor = 0
     if (!filePath) return
     const buf = await fs.readFile(filePath)
-    this.book = parseNovel(buf, this.chunkSize)
+    const ext = path.extname(filePath).toLowerCase()
+    if (ext === '.epub') {
+      const epub = parseEpub(buf, this.chunkSize)
+      this.book = epub
+      this.title = epub.title || path.basename(filePath, ext)
+    } else {
+      this.book = parseNovel(buf, this.chunkSize)
+      this.title = path.basename(filePath, ext)
+    }
     this.bookId = bookIdOf(filePath, buf.byteLength)
-    this.title = path.basename(filePath, path.extname(filePath))
     this.cursor = await this.store.get(this.bookId)
   }
 

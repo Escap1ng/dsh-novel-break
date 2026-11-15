@@ -97,12 +97,11 @@ export function chunkParagraphs(body: string, chunkSize: number): string[] {
   return chunks
 }
 
-/** 解析整本小说为章节与阅读块 */
-export function parseNovel(buf: Uint8Array, chunkSize: number): NovelBook {
-  const text = decodeText(buf)
+/** 把章节列表组装为统一的书籍结构（txt 与 epub 共用） */
+export function buildBook(rawChapters: { title: string; body: string }[], chunkSize: number): NovelBook {
   const chapters: NovelChapter[] = []
   const blocks: NovelBlock[] = []
-  for (const [chapterIndex, ch] of splitChapters(text).entries()) {
+  for (const [chapterIndex, ch] of rawChapters.entries()) {
     const startBlock = blocks.length
     for (const chunk of chunkParagraphs(ch.body, chunkSize)) {
       blocks.push({ index: blocks.length, chapterIndex, chapterTitle: ch.title, text: chunk })
@@ -110,4 +109,9 @@ export function parseNovel(buf: Uint8Array, chunkSize: number): NovelBook {
     chapters.push({ title: ch.title, startBlock, endBlock: blocks.length })
   }
   return { chapters, blocks }
+}
+
+/** 解析整本 txt 小说为章节与阅读块 */
+export function parseNovel(buf: Uint8Array, chunkSize: number): NovelBook {
+  return buildBook(splitChapters(decodeText(buf)), chunkSize)
 }
