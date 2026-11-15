@@ -6,7 +6,7 @@
   "main": "./lib/index.js",
   "exports": {
     ".": "./lib/index.js",
-    "./client": "./lib/client/index.js",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -16,7 +16,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/build-client.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test"
   },
@@ -31,7 +31,8 @@
         "slots"
       ],
       "external": [
-        "react"
+        "react",
+        "react/jsx-runtime"
       ]
     },
     "bundle": {
@@ -52,9 +53,12 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh": "^0.2.2-rc.1",
     "@deepseek-ai/schemastery": "*",
+    "@electron/asar": "^4.3.2",
     "@types/node": "^24.0.0",
     "@types/react": "^18.2.0",
+    "esbuild": "^0.28.2",
     "react": "^18.2.0",
     "typescript": "^5.5.0"
   },

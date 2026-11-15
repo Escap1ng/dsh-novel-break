@@ -1,3 +1,14 @@
 node_modules/
 lib/
 *.tsbuildinfo
+scripts/asar-extract/
+scripts/test-dsh-home/
+scripts/*.log
+scripts/*.txt
+scripts/*.html
+scripts/client*.js
+scripts/inspect-*.cjs
+scripts/extract-*.cjs
+scripts/check-*.cjs
+scripts/verify-local-dsh.cjs
+scripts/run-cli.cjs

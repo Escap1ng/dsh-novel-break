@@ -31,7 +31,8 @@ src/
     index.ts        浏览器端入口：以 priority 50 接管 conversation.chat.reasoning.body 槽位
     NovelCard.tsx   可折叠小说卡片（换一段）
     types.ts        最小槽位契约类型（联调时替换为官方类型）
-test/               node:test 单元测试（17 个用例）
+test/               node:test 单元测试（18 个用例，含客户端加载器契约冒烟）
+scripts/            构建与真实环境测试脚本（build-client / start-test-web / test.patch.yml）
 cordis.patch.yml    --patch 本地加载配置
 ```
 
@@ -40,7 +41,7 @@ cordis.patch.yml    --patch 本地加载配置
 - [x] 钩子调研：确认官方 `conversation.chat.reasoning.body` single 槽（默认实现 priority 100），低值接管即可只处理思维块正文、原文经官方工厂槽照常渲染；宿主路由采用 `webServer.register` + `ctx.effect` 工厂模式（参考 dsh-think-translate 的实测教训：effect 必须传返回 disposer 的工厂，否则路由注册即被注销）
 - [x] 框架代码完成
 - [x] epub 导入支持（spine 顺序 / OPF 书名 / NCX 章节名 / 相对路径归一化），17 个单元测试全部通过（解析器 / epub / 进度存储 / 书库）
-- [ ] 真实 DSH 环境联调：客户端类型目前为最小声明，需对齐官方 `@deepseek-ai/dsh-client-ui-primitives`
+- [x] 真实 DSH 环境联调（0.2.2-rc.1，隔离 DSH_HOME）：宿主路由 /_novel/state 与 /_novel/next 实测通过，书籍加载、顺序出块、进度持久化与重启恢复全部验证；浏览器端已按官方 `__ModuleLoader__` 闭包契约用 esbuild 打包（react 外部化），服务器正确下发并通过无头加载器冒烟测试。剩余：真人打开 Web UI 观察卡片渲染效果
 - [ ] 卡片交互补全：暂停插入、下一章跳转；设置页 section
 - [ ] 打包 bundle 并 `dsh plugin add` 安装实测
 
@@ -53,6 +54,15 @@ npx @deepseek-ai/dsh web --patch ./cordis.patch.yml
 ```
 
 本地调试时把 `cordis.patch.yml` 中的 `name` 改为编译产物的 `file://` 绝对路径，并在 `config.novelPath` 填入小说 txt / epub 的绝对路径。
+
+真实环境测试（隔离 DSH_HOME，不影响桌面版）：
+
+```powershell
+powershell -File scripts/start-test-web.ps1
+# 按输出的带 token 地址打开浏览器；插件接口：/_novel/state、/_novel/next
+```
+
+注意：桌面版（Electron）禁用了 RunAsNode，其 CLI 无法在普通终端使用；测试用 npm 版 `@deepseek-ai/dsh`（devDependency，与桌面版同代 0.2.2）。浏览器端产物必须是官方 `window.__ModuleLoader__.load({id, factory})` 闭包格式，`npm run build` 会自动完成打包。
 
 ## 风险与对策
 

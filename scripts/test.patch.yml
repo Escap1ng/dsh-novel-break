@@ -1,0 +1,11 @@
+# 真实环境测试补丁：dsh web --patch 本文件
+# novelPath 指向仓库内测试用书；DSH_HOME 由启动脚本隔离，不影响桌面版
+- insert:
+    - id: dsh-novel-break
+      name: 'file:///D:/000GH%20more/%E5%B0%8F%E8%AF%B4/dsh-novel-break/lib/index.js'
+      config:
+        enabled: true
+        novelPath: 'D:\000GH more\小说\dsh-novel-break\test\fixtures\测试小说.txt'
+        chunkSize: 120
+        insertEvery: 2
+        minReasoningChars: 50
