@@ -5,7 +5,7 @@
  */
 import { createElement, Fragment } from 'react'
 import type { ReactNode } from 'react'
-import { NovelCard } from './NovelCard.js'
+import { isPaused, NovelCard } from './NovelCard.js'
 import type { ClientContext, NovelState, ReasoningBodyProps } from './types.js'
 
 export const name = 'dsh-novel-break-client'
@@ -21,7 +21,11 @@ let state: NovelState = {
   totalBlocks: 0,
 }
 
+let lastRefresh = 0
+const REFRESH_INTERVAL_MS = 30_000
+
 async function refreshState(): Promise<void> {
+  lastRefresh = Date.now()
   try {
     const res = await fetch('/_novel/state')
     if (res.ok) state = (await res.json()) as NovelState
@@ -30,14 +34,30 @@ async function refreshState(): Promise<void> {
   }
 }
 
+/** 渲染时节流刷新配置，让 cordis.yml 热更新在半分钟内生效 */
+function maybeRefresh(): void {
+  if (Date.now() - lastRefresh > REFRESH_INTERVAL_MS) void refreshState()
+}
+
+/** 思维链内容指纹（FNV-1a）：同一消息重渲染时槽位标识稳定，供回放去重 */
+function hashText(text: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return (h >>> 0).toString(36)
+}
+
 /** 按空行把思维链切成块 */
 function splitReasoning(text: string): string[] {
   return text.split(/\n{2,}/).filter((s) => s.trim().length > 0)
 }
 
 function NovelReasoningBody({ text, running, renderFactorySlot }: ReasoningBodyProps): ReactNode {
+  maybeRefresh()
   const original = renderFactorySlot('conversation.chat.reasoning.content', { text, running })
-  if (!state.enabled || !state.hasBook || text.length < state.minReasoningChars) {
+  if (!state.enabled || !state.hasBook || isPaused() || text.length < state.minReasoningChars) {
     return original
   }
   const blocks = splitReasoning(text)
@@ -58,7 +78,7 @@ function NovelReasoningBody({ text, running, renderFactorySlot }: ReasoningBodyP
     const isLast = i === blocks.length - 1
     // 流式中的最后一块不插卡片，避免打断正在输出的内容
     if (sinceInsert >= state.insertEvery && !(running && isLast)) {
-      parts.push(createElement(NovelCard, { key: `novel-${i}` }))
+      parts.push(createElement(NovelCard, { key: `novel-${i}`, slotId: `${hashText(text)}-${i}` }))
       sinceInsert = 0
     }
   }

@@ -21,6 +21,15 @@ export interface NextBlock {
   text: string
 }
 
+export interface SkipChapterResult {
+  /** 是否成功跳到下一章（已在最后一章时为 false） */
+  skipped: boolean
+  /** 跳转后的阅读游标 */
+  blockIndex: number
+  /** 跳转后所在章节标题 */
+  chapterTitle: string
+}
+
 export class NovelLibrary {
   private book: NovelBook | null = null
   private bookId = ''
@@ -56,6 +65,22 @@ export class NovelLibrary {
       title: this.title,
       totalBlocks: this.book?.blocks.length ?? 0,
     }
+  }
+
+  /** 跳到下一章开头并持久化；已在最后一章或无书时返回 skipped: false */
+  async skipChapter(): Promise<SkipChapterResult> {
+    if (!this.book || this.book.blocks.length === 0) {
+      return { skipped: false, blockIndex: this.cursor, chapterTitle: '' }
+    }
+    // 游标可能已越过书尾，取最后一块所在章作为当前章
+    const currentBlock = this.book.blocks[Math.min(this.cursor, this.book.blocks.length - 1)]!
+    const nextChapter = this.book.chapters[currentBlock.chapterIndex + 1]
+    if (!nextChapter) {
+      return { skipped: false, blockIndex: this.cursor, chapterTitle: currentBlock.chapterTitle }
+    }
+    this.cursor = nextChapter.startBlock
+    await this.store.set(this.bookId, this.cursor)
+    return { skipped: true, blockIndex: this.cursor, chapterTitle: nextChapter.title }
   }
 
   /** 取下一个阅读块并推进进度；读完返回 done */

@@ -50,3 +50,10 @@ export interface NovelBlockPayload {
   chapterTitle: string
   text: string
 }
+
+/** 宿主端 /_novel/skip-chapter 返回的跳章结果 */
+export interface SkipChapterPayload {
+  skipped: boolean
+  blockIndex: number
+  chapterTitle: string
+}

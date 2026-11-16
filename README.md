@@ -12,26 +12,26 @@
 
 1. **多格式导入**：配置小说文件路径（txt / epub）。txt 自动识别 UTF-8/GBK 编码，按“第X章/第X节”切章；epub 按 spine 阅读顺序提取章节，书名取自 OPF 元数据，章节名取自 NCX 目录（无目录时回退正文标题）。章内按固定字数分块（默认 400 字，可调）。
 2. **分块插入**：监听思维链流式输出，在自然块边界（段落结束、工具调用间隙）插入小说卡片；每 N 个思维块插一次（可配），思维链很短时不插。
-3. **卡片交互**：小说渲染为可折叠卡片，样式与思维链区分；支持“下一章 / 跳过 / 暂停插入”。
-4. **进度记忆**：按书持久化阅读位置，重启 DSH、切换会话都能接着读。
+3. **卡片交互**：小说渲染为可折叠卡片，样式与思维链区分；支持“换一段 / 下一章 / 暂停·继续”（暂停为全局开关，本会话内记忆）。
+4. **进度记忆**：按书持久化阅读位置，重启 DSH、切换会话都能接着读；同一思维块回放/刷新时从会话缓存恢复卡片，不重复消耗阅读进度。
 5. **配置项**：书名、txt 路径、每块字数、插入间隔、总开关（Schemastery schema，cordis.yml 热更新）。
 
 ## 项目结构
 
 ```
 src/
-  index.ts          宿主端入口：加载小说，注册 /_novel/state 与 /_novel/next 同源路由
+  index.ts          宿主端入口：加载小说，注册 /_novel/state、/_novel/next、/_novel/skip-chapter 同源路由
   config.ts         Schemastery 配置 schema（enabled / novelPath / chunkSize / insertEvery / minReasoningChars）
   novel/
     parser.ts       编码探测（UTF-8/GBK/BOM）+ 切章 + 按字数分块（txt/epub 共用）
     epub.ts         epub 解包：container → OPF（metadata/manifest/spine）→ NCX 章节名 → 纯文本提取
-    library.ts      书库：顺序出块、游标推进
+    library.ts      书库：顺序出块、游标推进、跳章
     progress.ts     阅读进度持久化（文件名+大小指纹，临时文件原子写入）
   client/
-    index.ts        浏览器端入口：以 priority 50 接管 conversation.chat.reasoning.body 槽位
-    NovelCard.tsx   可折叠小说卡片（换一段）
+    index.ts        浏览器端入口：priority 50 接管 reasoning.body 槽位，配置节流刷新（30s）
+    NovelCard.tsx   可折叠小说卡片（换一段/下一章/暂停），会话缓存回放去重
     types.ts        最小槽位契约类型（联调时替换为官方类型）
-test/               node:test 单元测试（18 个用例，含客户端加载器契约冒烟）
+test/               node:test 单元测试（21 个用例，含加载器契约冒烟与跳章用例）
 scripts/            构建与真实环境测试脚本（build-client / start-test-web / test.patch.yml）
 cordis.patch.yml    --patch 本地加载配置
 ```
@@ -42,7 +42,8 @@ cordis.patch.yml    --patch 本地加载配置
 - [x] 框架代码完成
 - [x] epub 导入支持（spine 顺序 / OPF 书名 / NCX 章节名 / 相对路径归一化），17 个单元测试全部通过（解析器 / epub / 进度存储 / 书库）
 - [x] 真实 DSH 环境联调（0.2.2-rc.1，隔离 DSH_HOME）：宿主路由 /_novel/state 与 /_novel/next 实测通过，书籍加载、顺序出块、进度持久化与重启恢复全部验证；浏览器端已按官方 `__ModuleLoader__` 闭包契约用 esbuild 打包（react 外部化），服务器正确下发并通过无头加载器冒烟测试。剩余：真人打开 Web UI 观察卡片渲染效果
-- [ ] 卡片交互补全：暂停插入、下一章跳转；设置页 section
+- [x] 卡片交互补全：换一段 / 下一章（宿主 /_novel/skip-chapter 实测通过，含最后一章与方法限制边界）/ 全局暂停·继续；配置热更新 30 秒内生效；回放去重（sessionStorage 按思维块指纹缓存）
+- [ ] 设置页 section（settings.section 槽位）
 - [ ] 打包 bundle 并 `dsh plugin add` 安装实测
 
 ## 本地开发

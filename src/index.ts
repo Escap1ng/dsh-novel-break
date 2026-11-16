@@ -68,9 +68,22 @@ export function apply(ctx: Context, config: Config): void {
         }
       },
     })
+    const disposeSkip = webServer.register({
+      kind: 'exact',
+      path: '/_novel/skip-chapter',
+      handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { error: 'POST only' })
+        try {
+          sendJson(res, 200, await library.skipChapter())
+        } catch {
+          sendJson(res, 503, { skipped: false, blockIndex: -1, chapterTitle: '' })
+        }
+      },
+    })
     return () => {
       disposeState()
       disposeNext()
+      disposeSkip()
     }
   })
 }
